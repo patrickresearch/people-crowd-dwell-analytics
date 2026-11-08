@@ -13,8 +13,8 @@ from crowd_dwell.zones import first_frame, read_frames, resolve_source
 
 def load(weights: str, backend: str, shape: tuple[int, int]) -> tuple[YOLO, str | None]:
     if backend.startswith("coreml"):
-        half = backend == "coreml-fp16"
-        return YOLO(YOLO(weights).export(format="coreml", imgsz=list(shape), half=half)), None
+        quant = {"quantize": 16} if backend == "coreml-fp16" else {}
+        return YOLO(YOLO(weights).export(format="coreml", imgsz=list(shape), **quant)), None
     return YOLO(weights), backend
 
 

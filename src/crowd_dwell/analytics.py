@@ -37,6 +37,13 @@ def stitch(df: pd.DataFrame, fps: float, max_gap_s: float, max_dist_px: float) -
     return df.assign(track_id=df.track_id.map(root).fillna(df.track_id).astype(int))
 
 
+def drop_static(df: pd.DataFrame, min_motion_px: float, min_conf: float) -> pd.DataFrame:
+    g = df.groupby("track_id")
+    extent = np.hypot(g.fx.max() - g.fx.min(), g.fy.max() - g.fy.min())
+    static = (extent < min_motion_px) & (g.conf.mean() < min_conf)
+    return df[~df.track_id.isin(static[static].index)]
+
+
 def track_kpis(df: pd.DataFrame, fps: float) -> pd.DataFrame:
     d = df.sort_values(["track_id", "frame"])
     step = np.hypot(d.groupby("track_id").fx.diff(), d.groupby("track_id").fy.diff())
@@ -100,6 +107,8 @@ def main() -> None:
     ap.add_argument("--zones", default="configs/zones.yaml")
     ap.add_argument("--max-gap", type=float, default=1.0, help="seconds")
     ap.add_argument("--max-dist", type=float, default=80.0, help="pixels")
+    ap.add_argument("--min-motion", type=float, default=20.0, help="pixels")
+    ap.add_argument("--static-conf", type=float, default=0.4)
     ap.add_argument("--min-dwell", type=float, default=0.5, help="seconds")
     ap.add_argument("--bin", type=float, default=5.0, help="seconds")
     ap.add_argument("--sigma", type=float, default=15.0)
@@ -109,8 +118,10 @@ def main() -> None:
     meta = json.loads((run / "meta.json").read_text())
     fps = meta["fps"]
     raw = load_tracks(run / "tracks.csv")
-    df = stitch(raw, fps, a.max_gap, a.max_dist)
-    df.drop(columns=["fx", "fy"]).to_csv(run / "tracks_stitched.csv", index=False)
+    stitched = stitch(raw, fps, a.max_gap, a.max_dist)
+    df = drop_static(stitched, a.min_motion, a.static_conf)
+    stitched.drop(columns=["fx", "fy"]).to_csv(run / "tracks_stitched.csv", index=False)
+    df.drop(columns=["fx", "fy"]).to_csv(run / "tracks_clean.csv", index=False)
 
     kpis = track_kpis(df, fps)
     kpis.to_csv(run / "track_kpis.csv")
@@ -139,7 +150,8 @@ def main() -> None:
 
     summary = {
         "tracks_raw": int(raw.track_id.nunique()),
-        "tracks_stitched": int(df.track_id.nunique()),
+        "tracks_stitched": int(stitched.track_id.nunique()),
+        "tracks_clean": int(df.track_id.nunique()),
         "line_in": int(kpis.crossed_in.sum()),
         "line_out": int(kpis.crossed_out.sum()),
         "zone_visitors": int(dwell.size),

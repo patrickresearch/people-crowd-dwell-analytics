@@ -2,9 +2,11 @@ SEQ ?= MOT17-04
 MODEL ?= yolo26s.pt
 IMGSZ ?= 1280
 SRC := data/MOT17/train/$(SEQ)-FRCNN
-RUN := runs/$(SEQ)-$(basename $(MODEL))-$(IMGSZ)
+EXPORT_H ?= 736
+BACKEND := $(if $(filter %.mlpackage,$(MODEL)),-coreml)
+RUN := runs/$(SEQ)-$(basename $(MODEL))$(BACKEND)-$(IMGSZ)
 
-.PHONY: setup data preview track analyze eval eval-all bench gif test lint
+.PHONY: setup data export preview track analyze eval eval-all bench gif test lint
 
 setup:
 	uv sync --all-extras
@@ -13,6 +15,9 @@ data:
 	mkdir -p data
 	curl -L -C - -o data/MOT17.zip https://motchallenge.net/data/MOT17.zip
 	unzip -qn data/MOT17.zip 'MOT17/train/*-FRCNN/*' -d data
+
+export:
+	uv run yolo export model=$(MODEL) format=coreml quantize=16 imgsz=$(EXPORT_H),$(IMGSZ)
 
 preview:
 	uv run crowd-zones $(SRC) --scene $(SEQ) --out runs/$(SEQ)-preview.jpg
@@ -24,7 +29,7 @@ analyze:
 	uv run crowd-analyze $(RUN)
 
 eval:
-	uv run crowd-eval $(SRC)/gt/gt.txt $(RUN)/tracks.csv $(RUN)/tracks_stitched.csv
+	uv run crowd-eval $(SRC)/gt/gt.txt $(RUN)/tracks.csv $(RUN)/tracks_stitched.csv $(RUN)/tracks_clean.csv
 
 eval-all:
 	uv run crowd-eval $(SRC)/gt/gt.txt runs/$(SEQ)-*/tracks*.csv

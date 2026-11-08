@@ -50,8 +50,10 @@ class Renderer:
         self.trace = sv.TraceAnnotator(
             position=sv.Position.BOTTOM_CENTER, trace_length=int(2 * fps), color_lookup=lookup
         )
-        self.box = sv.BoxAnnotator(thickness=2, color_lookup=lookup)
-        self.label = sv.LabelAnnotator(text_scale=0.5, text_padding=4, color_lookup=lookup)
+        self.box = sv.BoxAnnotator(thickness=3, color_lookup=lookup)
+        self.label = sv.LabelAnnotator(
+            text_scale=0.9, text_thickness=2, text_padding=5, color_lookup=lookup
+        )
 
     def __call__(self, frame, det, labels, counts) -> np.ndarray:
         if self.anon:
