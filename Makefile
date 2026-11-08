@@ -29,7 +29,7 @@ analyze:
 	uv run crowd-analyze $(RUN)
 
 eval:
-	uv run crowd-eval $(SRC)/gt/gt.txt $(RUN)/tracks.csv $(RUN)/tracks_stitched.csv $(RUN)/tracks_clean.csv
+	uv run crowd-eval $(SRC)/gt/gt.txt $(RUN)/tracks.csv $(RUN)/tracks_stitched.csv
 
 eval-all:
 	uv run crowd-eval $(SRC)/gt/gt.txt runs/$(SEQ)-*/tracks*.csv

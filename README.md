@@ -34,7 +34,6 @@ uv run crowd-analyze runs/my_video
 | `annotated.mp4` | boxes, IDs, traces, line, zone, live counter, people pixelated |
 | `tracks.csv` | one row per frame and track: box, confidence, in-zone flag, crossing (+1 in / −1 out) |
 | `tracks_stitched.csv` | tracks after gap stitching |
-| `tracks_clean.csv` | stitched tracks without static low-confidence false positives (bollards, cones) |
 | `track_kpis.csv` | per track: first/last seen, dwell time, path length, crossings |
 | `throughput.csv`, `throughput.png` | crossings per minute over time |
 | `dwell_hist.png` | dwell time distribution |
@@ -46,7 +45,6 @@ uv run crowd-analyze runs/my_video
 - **Detection & tracking:** Ultralytics YOLO restricted to class `person`, ByteTrack with a low detection threshold (`conf=0.1`) so its second association stage can recover occluded people.
 - **Geometry:** the bottom-centre of each box (foot point) triggers the line and the zone, so a person counts where they stand, not where their head is.
 - **Gap stitching:** occlusions split one person into several IDs and cut dwell times short. A track starting within `--max-gap` seconds and `--max-dist` pixels of where another ended is merged into it (greedy, nearest first).
-- **Static false positives:** tracks that barely move (`--min-motion` px) and have low mean confidence (`--static-conf`) are dropped before aggregation, since bollards or cones detected as people would otherwise dominate dwell time and the heatmap. People standing still keep high confidence and are retained.
 - **Evaluation:** MOTA and IDF1 follow the MOTChallenge / TrackEval protocol: predictions matched to distractor classes (static person, reflection, …) are dropped, only non-ignored pedestrians count as ground truth, IoU ≥ 0.5.
 
 ## Results
@@ -68,6 +66,15 @@ uv run crowd-analyze runs/my_video
 - The CoreML FP16 export matches PyTorch on MOTA (51.8) and loses about one IDF1 point. Small box deviations occasionally flip a long-lived identity, which IDF1 penalises over many frames.
 - Gap stitching changes only identities, so MOTA barely moves, but it cuts ID switches by 23–37 % and lifts IDF1 by up to 2.9 points. IDF1 is the metric that matters for dwell time.
 
+**Second scene:** MOT17-09 (eye-level camera in front of shop entrances, 525 frames), same configuration (YOLO26s CoreML FP16, 1280):
+
+| Tracks | MOTA | IDF1 | IDSW | Recall | Precision |
+|---|---|---|---|---|---|
+| raw | 56.8 | 49.6 | 52 | 74.2 | 81.8 |
+| stitched | 56.9 | 52.9 | 46 | 74.2 | 81.8 |
+
+People are close to the camera here, so recall is higher than on MOT17-04, but frequent mutual occlusion costs identities. Stitching gains 3.3 IDF1 points.
+
 **Throughput** on MacBook M5, detection + tracking end to end:
 
 | Model | MPS | CoreML FP32 | CoreML FP16 |
@@ -85,6 +92,8 @@ FPS for detection + tracking, 1280×736 input, median over 300 frames after warm
 **Audience KPIs** for MOT17-04 (YOLO26s CoreML FP16, 1280 px, 30.8 fps including rendering and anonymisation): 119 persons after stitching (180 raw tracks), 28 zone visitors in front of the shop with a median dwell of 2.5 s and P90 of 16.9 s.
 
 ![heatmap](assets/heatmap.png)
+
+Bright spots are people who stay in place: a steward walking the cordoned area for the whole sequence, two seated people near the lamp posts and the group at the shop front. A filter for static low-confidence tracks was evaluated and dropped: it removed about as many true as false positives (FP −384, FN +330, MOTA +0.1).
 
 ![dwell](assets/dwell_hist.png)
 ![throughput](assets/throughput.png)
