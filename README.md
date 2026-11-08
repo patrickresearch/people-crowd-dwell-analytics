@@ -75,6 +75,8 @@ uv run crowd-analyze runs/my_video
 
 People are close to the camera here, so recall is higher than on MOT17-04, but frequent mutual occlusion costs identities. Stitching gains 3.3 IDF1 points.
 
+In front of the video wall, 19 of 62 passers-by enter the zone with a median dwell of 2.0 s (P90 3.2 s): the screen is passed, not watched. The line counts 11 people walking right and 4 walking left.
+
 **Throughput** on MacBook M5, detection + tracking end to end:
 
 | Model | MPS | CoreML FP32 | CoreML FP16 |
