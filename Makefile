@@ -6,7 +6,7 @@ EXPORT_H ?= 736
 BACKEND := $(if $(filter %.mlpackage,$(MODEL)),-coreml)
 RUN := runs/$(SEQ)-$(basename $(MODEL))$(BACKEND)-$(IMGSZ)
 
-.PHONY: setup data export preview track analyze eval eval-all bench gif test lint
+.PHONY: setup data export preview track analyze eval eval-all bench gif assets test lint
 
 setup:
 	uv sync --all-extras
@@ -41,7 +41,12 @@ gif:
 	ffmpeg -y -loglevel error -ss 0 -t 6 -i $(RUN)/annotated.mp4 \
 		-vf "fps=10,scale=720:-1:flags=lanczos,split[a][b];[a]palettegen=max_colors=128:stats_mode=diff[p];[b][p]paletteuse=dither=bayer:bayer_scale=5:diff_mode=rectangle" \
 		assets/demo.gif
-	cp $(RUN)/heatmap.png $(RUN)/dwell_hist.png $(RUN)/throughput.png assets/
+	du -h assets/demo.gif
+
+assets:
+	cp $(RUN)/heatmap.jpg assets/$(SEQ)-heatmap.jpg
+	cp $(RUN)/dwell_hist.png assets/$(SEQ)-dwell.png
+	cp $(RUN)/throughput.png assets/$(SEQ)-throughput.png
 	du -h assets/*
 
 test:

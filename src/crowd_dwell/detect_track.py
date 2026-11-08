@@ -15,6 +15,7 @@ from crowd_dwell.zones import Scene, draw_scene, load_scene, read_frames, resolv
 COLUMNS = ["frame", "t", "track_id", "x1", "y1", "x2", "y2", "conf", "in_zone", "crossed"]
 ANCHOR = (sv.Position.BOTTOM_CENTER,)
 BG_SAMPLES = 25
+PIXELATE = sv.PixelateAnnotator(pixel_size=16)
 
 
 def parse_args() -> argparse.Namespace:
@@ -45,7 +46,7 @@ def tracked(result) -> sv.Detections:
 class Renderer:
     def __init__(self, scene: Scene, fps: float, anonymize: bool):
         self.scene = scene
-        self.anon = sv.PixelateAnnotator(pixel_size=16) if anonymize else None
+        self.anon = PIXELATE if anonymize else None
         lookup = sv.ColorLookup.TRACK
         self.trace = sv.TraceAnnotator(
             position=sv.Position.BOTTOM_CENTER, trace_length=int(2 * fps), color_lookup=lookup
@@ -117,7 +118,7 @@ def main() -> None:
             ])
         )
         if (n - 1) % bg_step == 0 and len(samples) < BG_SAMPLES:
-            samples.append(frame)
+            samples.append(PIXELATE.annotate(frame.copy(), det))
         if render:
             labels = [
                 f"#{t} {dwell[t] / fps:.1f}s" if z else f"#{t}"

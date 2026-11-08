@@ -120,7 +120,10 @@ def main() -> None:
 
     bg = cv2.imread(str(run / "background.jpg"))
     scene = load_scene(a.zones, meta["scene"])
-    cv2.imwrite(str(run / "heatmap.png"), draw_scene(heatmap(df, bg, a.sigma), scene))
+    cv2.imwrite(
+        str(run / "heatmap.jpg"), draw_scene(heatmap(df, bg, a.sigma), scene),
+        [cv2.IMWRITE_JPEG_QUALITY, 88],
+    )
 
     fig = figure("Dwell time in zone", "seconds", "persons")
     fig.add_histogram(x=dwell, marker_color=SERIES[0], name="dwell", xbins=dict(size=1))
